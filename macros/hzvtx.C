@@ -1,0 +1,22 @@
+void hzvtx()
+{
+  TFile *f = TFile::Open("/Users/vipulpant/cernbox/newana/TestFile_UPCReco_Vipul.root","READ");
+  TDirectoryFile *g = (TDirectoryFile*) f->Get("defaultCPDC");
+  TDirectoryFile *g1 = (TDirectoryFile*) g->Get("QAplots");  
+  TCanvas *c2=new TCanvas("c2","c2",1200,1200);
+  TH1F *hNtrk_inc= (TH1F*) g1->Get("hZvtx");
+  hNtrk_inc->GetXaxis()->SetTitle("hZvtx");
+  //    hNtrk_inc->GetYaxis()->SetTitle("N_events");
+      
+      //      hNtrk_inc->SetTitle("OO (6.8 TeV) UPC Reco HYDJET");
+  //      hNtrk_inc->SetStats(kFALSE);
+      hNtrk_inc->SetMarkerColor(kBlue);
+      hNtrk_inc->SetLineColor(kBlue);
+      hNtrk_inc->SetMarkerSize(4);
+      hNtrk_inc->SetLineWidth(2);
+      hNtrk_inc->GetXaxis()->SetRangeUser(-15.,15.);
+      hNtrk_inc->Draw("same");
+      cout<<hNtrk_inc->Integral();  
+    
+    c2->SaveAs("/Users/vipulpant/OOanalysis/Plots/hZvtx.pdf");
+}  

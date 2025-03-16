@@ -1,0 +1,51 @@
+void Ntrk_dist()
+{
+  TFile *f = TFile::Open("/Users/vipulpant/cernbox/newana/TestFile_UPCReco_Vipul.root","READ");
+  TDirectoryFile *g = (TDirectoryFile*) f->Get("defaultCPDC");
+  TDirectoryFile *g1 = (TDirectoryFile*) g->Get("QAplots");  
+  TCanvas *c1= new TCanvas("c","c",1200,1200);
+  TLegend *legend = new TLegend(0.7, 0.4, 0.9, 0.6);
+  TLatex t;
+  for (int i=6;i<=9;i++)
+    {
+      TH1F *hNtrk = (TH1F*) g1->Get(Form("hNtrk_%d",i));
+      
+      hNtrk->SetName(Form("hNtrk_%d",i));
+      
+
+      hNtrk->GetXaxis()->SetTitle("N_tracks");
+      hNtrk->GetYaxis()->SetRangeUser(0.,1000.);
+      hNtrk->GetXaxis()->SetRangeUser(0.,300.);
+      hNtrk->SetStats(kFALSE);
+      hNtrk->SetMarkerColor(i-5);
+      hNtrk->SetLineColor(i-5);
+      hNtrk->SetMarkerSize(4);
+      hNtrk->SetLineWidth(2);
+      hNtrk->Draw("same");
+      legend->AddEntry(hNtrk,Form("Centralitybin %d",i),"l");
+    }
+  legend->Draw();
+
+  TCanvas *c2= new TCanvas("c2","c2",1200,1200);
+  c2->SetLogy();
+  TH1F *hNtrk_inc= (TH1F*) g1->Get("hNtrk_inc");
+      hNtrk_inc->GetXaxis()->SetTitle("N_{trks}");
+      hNtrk_inc->GetYaxis()->SetTitle("");
+      
+      //      hNtrk_inc->SetTitle("OO (6.8 TeV) UPC Reco HYDJET");
+      hNtrk_inc->SetStats(kFALSE);
+      hNtrk_inc->SetMarkerColor(kBlue);
+      hNtrk_inc->SetLineColor(kBlue);
+      hNtrk_inc->SetMarkerSize(4);
+      hNtrk_inc->SetLineWidth(2);
+      hNtrk_inc->GetXaxis()->SetRangeUser(0.,1000.);
+      //t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Simulation}");
+      hNtrk_inc->GetXaxis()->SetTitleSize(0.04);
+      hNtrk_inc->GetYaxis()->SetTitleSize(0.04);
+      hNtrk_inc->Draw("same");
+      t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Simulation}");
+      t.DrawLatexNDC(0.6, 0.93, "HYDJET OO 6.8 TeV");
+      cout<<hNtrk_inc->Integral();  
+    c1->SaveAs("/Users/vipulpant/OOanalysis/Plots/Ntrks_cent_bins.pdf");
+    c2->SaveAs("/Users/vipulpant/OOanalysis/Plots/Ntrks_inc.pdf");
+}  

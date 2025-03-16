@@ -1,0 +1,111 @@
+#include <TFile.h>
+#include <TDirectoryFile.h>
+#include <TH1F.h>
+#include <TCanvas.h>
+#include <vector>
+#include <iostream>
+#include <iterator>
+
+void Centrality_bins_v2() {
+    // Open the ROOT file and get the histogram
+    TFile *f = TFile::Open("/Users/vipulpant/cernbox/newana/TestFile_UPCReco_Vipul.root", "READ");
+    TDirectoryFile *g = (TDirectoryFile*) f->Get("defaultCPDC");
+    TDirectoryFile *g1 = (TDirectoryFile*) g->Get("QAplots");
+
+    // Create a canvas to plot the histogram
+    TCanvas *c2 = new TCanvas("c2", "c2", 1200, 1200);
+    c2->SetLogy(1);
+
+    // Get the histogram and set its properties
+    TH1F *hHFSum = (TH1F*) g1->Get("hHFSum");
+    hHFSum->GetXaxis()->SetTitle("HFSum");
+    hHFSum->SetMarkerColor(kBlue);
+    hHFSum->SetLineColor(kBlue);
+    hHFSum->SetMarkerSize(4);
+    hHFSum->SetLineWidth(2);
+
+    // Normalize the histogram by its integral
+    hHFSum->Scale(1.0 / hHFSum->Integral());
+
+    // Get the total area of the histogram
+    double totalarea = hHFSum->Integral();
+
+    // Vector to store centrality values
+    std::vector<double> centvals;
+    centvals.push_back(0.);  // Add 0% centrality (starting point)
+
+    // Variables for area accumulation and centrality bin calculation
+    int binstart = 1;
+    double area = 0.;
+
+    // Loop through the histogram bins and calculate centrality intervals
+    for (int i = 1; i <= hHFSum->GetNbinsX(); i++) {
+        // Calculate the accumulated area from binstart to the current bin
+        area = hHFSum->Integral(binstart, i, "width");
+
+        // Calculate the normalized area (fraction of total area)
+        double normArea = area / totalarea;
+
+        // When the area reaches a multiple of 0.1, save the current bin center as a centrality value
+        if (normArea >= centvals.size() * 0.1) {
+            double xvalue = hHFSum->GetBinCenter(i);
+            centvals.push_back(xvalue);  // Add centrality value to the list
+            binstart = i + 1;  // Update binstart for the next section
+
+            // Stop if we've added 10 centrality values
+            if (centvals.size() >= 10) break;
+        }
+    }
+
+    // If there are fewer than 10 values, add the last bin center to ensure we have 10 intervals
+    if (centvals.size() < 10) {
+        centvals.push_back(hHFSum->GetBinCenter(hHFSum->GetNbinsX()));
+    }
+
+    // Debugging: Print the centrality values
+    std::cout << "Centrality values: ";
+    for (double val : centvals) {
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
+
+    // Plot the histogram using hist style
+    hHFSum->Draw("hist");
+
+    // Create vertical lines at the centrality values, checking the size of centvals
+    TLine *l[11];
+    if (centvals.size() < 10) {
+        std::cerr << "Error: Centvals vector has fewer than 10 elements!" << std::endl;
+        return;  // Exit the function if there are not enough centvals
+    }
+
+    for (int j = 0; j < centvals.size(); j++) {
+        l[j] = new TLine(centvals.at(j), 0, centvals.at(j), hHFSum->GetBinContent(hHFSum->FindBin(centvals.at(j))));
+        l[j]->SetLineStyle(2);
+        l[j]->SetLineWidth(4);
+
+        // Print the bin content for the vertical line
+        std::cout << hHFSum->GetBinContent(hHFSum->FindBin(centvals.at(j))) << std::endl;
+
+        // Draw the vertical line
+        l[j]->Draw();
+    }
+
+    // Output centrality values to console
+    std::copy(centvals.begin(), centvals.end(), std::ostream_iterator<double>(std::cout, " "));
+
+    // Create a TH1D histogram for centrality values
+    int nBins = centvals.size() - 1;
+    TH1D *cent_vals = new TH1D("cent_vals", "cent_vals", nBins, centvals.data());
+
+    // Fill the histogram with example centrality values (you can modify this as per your data)
+    cent_vals->Fill(100);
+    cent_vals->Fill(50);
+
+    // Save the centrality values histogram to a ROOT file
+    TFile *fout = new TFile("cent_vals.root", "RECREATE");
+    cent_vals->Write();
+
+    // Save the canvas as a PDF
+    c2->SaveAs("/Users/vipulpant/OOanalysis/Plots/Centrality_bins.pdf");
+}

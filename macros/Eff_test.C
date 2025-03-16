@@ -1,0 +1,32 @@
+void Eff_test()
+{
+  TFile *f = TFile::Open("/Users/vipulpant/cernbox/newana/TestFile_UPCReco_Vipul.root","READ");
+  TDirectoryFile *g = (TDirectoryFile*) f->Get("defaultCPDC");
+  TDirectoryFile *g1 = (TDirectoryFile*) g->Get("QAplots");  
+  TCanvas *c1= new TCanvas("c","c",1200,1200);
+  TLegend *legend = new TLegend(0.7, 0.4, 0.9, 0.6);
+      TH1F *hreco = (TH1F*) g1->Get("hpt_inc");
+      TH1F *hgen =  (TH1F*) g1->Get("hpt_gen_inc");
+
+      c1->SetLogy(1);
+      hreco->GetXaxis()->SetTitle("pT");
+      hreco->GetXaxis()->SetRangeUser(0.,20.);
+      hreco->SetStats(kFALSE);
+      hreco->SetMarkerColor(1);
+      hreco->SetLineColor(1);
+      hreco->SetMarkerSize(4);
+      hreco->SetLineWidth(2);
+      hreco->Draw("");
+      hgen->SetStats(kFALSE);
+      hgen->SetMarkerColor(2);
+      hgen->SetLineColor(2);
+      hgen->SetMarkerSize(4);
+      hgen->SetLineWidth(2);
+      hgen->Draw("same");
+
+      legend->AddEntry(hreco,"Reco","lp");
+      legend->AddEntry(hgen,"Gen","lp");
+  
+  legend->Draw();
+  c1->SaveAs("/Users/vipulpant/OOanalysis/Plots/pTdist.pdf");
+}  

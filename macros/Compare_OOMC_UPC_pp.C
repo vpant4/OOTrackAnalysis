@@ -1,0 +1,285 @@
+#include "TFile.h"
+#include "TH1.h"
+#include "TH3.h"
+#include "TCanvas.h"
+#include "TString.h"
+#include "TLatex.h"
+#include "TLegend.h"
+#include "TStyle.h"
+#include "THnSparse.h"
+
+
+
+
+
+
+//________________
+void setPadStyle() {
+    gPad->SetTopMargin(0.1);
+    gPad->SetBottomMargin(0.15);
+    gPad->SetRightMargin(0.1);
+    gPad->SetLeftMargin(0.15);
+}
+
+//________________
+void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
+    Int_t markerStyle = 20; // Full circle
+    Double_t markerSize = 1.3;
+    Int_t lineWidth = 2;
+    Int_t color = 2;
+    if (type == 0) {
+        color = 2;        // red
+        markerStyle = 20; // filled circle
+    }
+    else if (type == 1) {
+        color = 1;        // black
+        markerStyle = 24; // open circle
+    }
+    else if (type == 2) {
+        color = 1;        // black
+        markerStyle = 20; // filled triangle
+    }
+    else if (type == 3) {
+        color = 2;        // red
+        markerStyle = 24; // open circle
+    }
+    else if (type == 4) {
+        color = 4;        // blue
+        markerStyle = 20; // filled circle
+    }
+    else {
+        color = 6;        // magenta
+        markerStyle = 30; // open star
+    }
+
+    h->SetLineWidth( lineWidth );
+    h->SetLineColor( color );
+    
+    h->SetMarkerStyle( markerStyle );
+    h->SetMarkerColor( color );
+    h->SetMarkerSize( markerSize );
+
+    h->GetYaxis()->SetTitleSize(0.06);
+    h->GetYaxis()->SetLabelSize(0.06);
+    h->GetXaxis()->SetTitleSize(0.06);
+    h->GetXaxis()->SetLabelSize(0.06);
+    h->GetXaxis()->SetNdivisions(208);
+    h->GetYaxis()->SetNdivisions(208);    
+    h->GetYaxis()->SetTitleOffset(1.1);
+
+    if ( doRenorm ) {
+        h->Scale( 1./h->Integral() );
+    }
+}
+
+
+//________________
+void make1DRatio(TH1F *hRat, TH1F *hDen, const Char_t *ratioName = "Ratio to default", Int_t style = 0, Bool_t isBinomial = kFALSE) {
+
+    if ( !hDen ) {
+        std::cout << "Denominator does not exist" << std::endl;
+    }
+
+    if ( isBinomial ) {
+        hRat->Divide( hRat, hDen, 1., 1., "b" );
+    }
+    else {
+        hRat->Divide( hRat, hDen, 1., 1. );
+    }
+    hRat->GetYaxis()->SetTitle( ratioName );
+    hRat->GetYaxis()->SetRangeUser(0.4,1.6 );
+    //hRat->GetXaxis()->SetRangeUser(-2.915, 3.);
+    set1DStyle(hRat, style);
+}
+
+//________________
+void plotComparison(TCanvas *c, TH1F *h1, TH1F *h2,TH1F *hRatio,
+                    const char *h1Type, const char *h2Type, float xmin, float xmax,const char *xtitle )  {
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    set1DStyle(h1, 0);
+    set1DStyle(h2, 1);
+    
+    set1DStyle(hRatio, 0);
+    
+    
+
+    c->cd(1);
+    //gPad->SetBottomMargin(0);
+    gPad->SetLogy(1);
+    gPad->SetLogx(1);
+    setPadStyle();
+    h1->Draw();
+    h2->Draw("same");
+    //h1->GetYaxis()->SetRangeUser(0.0, 0.12);
+    h1->GetXaxis()->SetRangeUser(xmin, xmax);
+    h1->GetYaxis()->SetTitle("NEvents");
+    h1->GetXaxis()->SetTitle(xtitle);
+    
+   
+
+    TLegend *leg = new TLegend(0.65, 0.45, 0.9, 0.65);
+    leg->SetTextSize(0.06);
+    leg->AddEntry(h1, Form("%s", h1Type), "p");
+    leg->AddEntry(h2, Form("%s", h2Type), "p");
+    leg->SetBorderSize(0);
+    leg->Draw();
+
+    c->cd(2);
+    setPadStyle();
+    gPad->SetLogx(1);
+    hRatio->GetXaxis()->SetRangeUser(xmin,xmax);
+    hRatio->GetXaxis()->SetTitle(xtitle);
+    hRatio->Draw();
+    TLine *l = new TLine(xmin,1,xmax,1);
+    l->SetLineStyle(2);
+    l->SetLineColor(kBlack);
+    l->Draw();
+
+}
+
+//________________
+void Compare_OOMC_UPC_pp() {
+
+    // Base style
+    gStyle->SetOptStat(0);
+    gStyle->SetOptTitle(0);
+    gStyle->SetPalette(kBird);
+
+
+    
+    TFile *f1 = TFile::Open("/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_AMPT_UPCreco_5p36.root","READ");
+
+    TFile *f2 = TFile::Open("/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_AMPT_ppreco_5p36.root","READ");
+
+    TFile *f3 = TFile::Open("/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_Hijing_UPCreco_5p36.root","READ");
+
+    TFile *f4 = TFile::Open("/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_Hijing_ppreco_5p36.root","READ");
+
+    TFile *f5 = TFile::Open("/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_Hydjet_UPCreco_5p36.root","READ");
+
+    TFile *f6 = TFile::Open("/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_Hydjet_ppreco_5p36.root","READ");
+    
+    TH1F *hpt_upc_ampt = (TH1F*) f1->Get("htrkpt");
+    TH1F *hpt_pp_ampt = (TH1F*) f2->Get("htrkpt");
+    
+    TH1F *hpt_upc_hijing = (TH1F*) f3->Get("htrkpt");
+    TH1F *hpt_pp_hijing = (TH1F*) f4->Get("htrkpt");
+
+    TH1F *hpt_upc_hydjet = (TH1F*) f5->Get("htrkpt");
+    TH1F *hpt_pp_hydjet = (TH1F*) f6->Get("htrkpt");
+
+
+
+    TH1F *hntrk_upc_ampt = (TH1F*) f1->Get("hNtrk");
+    TH1F *hntrk_pp_ampt = (TH1F*) f2->Get("hNtrk");
+
+    TH1F *hntrk_upc_hijing = (TH1F*) f3->Get("hNtrk");
+    TH1F *hntrk_pp_hijing = (TH1F*) f4->Get("hNtrk");
+
+    TH1F *hntrk_upc_hydjet = (TH1F*) f5->Get("hNtrk");
+    TH1F *hntrk_pp_hydjet = (TH1F*) f6->Get("hNtrk");
+
+    /*hpt_upc_ampt->Rebin(5); 
+    hpt_pp_ampt->Rebin(5);
+    hpt_upc_hijing->Rebin(5);
+    hpt_pp_hijing->Rebin(5);
+    hpt_upc_hydjet->Rebin(5);
+    hpt_pp_hydjet->Rebin(5);
+
+    hntrk_upc_ampt->Rebin(10);
+    hntrk_pp_ampt->Rebin(10);
+    hntrk_upc_hijing->Rebin(10);
+    hntrk_pp_hijing->Rebin(10);
+    hntrk_upc_hydjet->Rebin(10);
+    hntrk_pp_hydjet->Rebin(10);
+    
+    */
+    
+    
+    set1DStyle(hpt_upc_ampt, 0);
+    set1DStyle(hpt_pp_ampt, 0);
+    set1DStyle(hpt_upc_hijing, 0);
+    set1DStyle(hpt_pp_hijing, 0);
+    set1DStyle(hpt_upc_hydjet, 0);
+    set1DStyle(hpt_pp_hydjet, 0);
+
+    set1DStyle(hntrk_upc_ampt, 0);
+    set1DStyle(hntrk_pp_ampt, 0);
+    set1DStyle(hntrk_upc_hijing, 0);
+    set1DStyle(hntrk_pp_hijing, 0);
+    set1DStyle(hntrk_upc_hydjet, 0);
+    set1DStyle(hntrk_pp_hydjet, 0);
+    //return;
+
+    //hpt_upc_ampt->Draw();
+    //return;
+
+    TH1F *hptamptRatio =   (TH1F*)(hpt_upc_ampt->Clone("hpt_upc_ampt"));
+    TH1F *hpthijingRatio = (TH1F*)( hpt_upc_hijing->Clone("hpt_upc_hijing"));
+    TH1F *hpthydjetRatio = (TH1F*)( hpt_upc_hydjet->Clone("hpt_upc_hydjet"));
+
+    TH1F *hntrkamptRatio =   (TH1F*)(hntrk_upc_ampt->Clone("hntrk_upc_ampt"));
+    TH1F *hntrkhijingRatio = (TH1F*)( hntrk_upc_hijing->Clone("hntrk_upc_hijing"));
+    TH1F *hntrkhydjetRatio = (TH1F*)( hntrk_upc_hydjet->Clone("hntrk_upc_hydjet"));
+    
+    
+
+    //hhijingRatio->Draw();
+    //return;
+    make1DRatio(hptamptRatio, hpt_pp_ampt, "UPC/ppReco", 2);
+    make1DRatio(hpthijingRatio, hpt_pp_hijing, "UPC/ppReco", 2);
+    make1DRatio(hpthydjetRatio, hpt_pp_hydjet, "UPC/ppReco", 2);
+
+    make1DRatio(hntrkamptRatio, hntrk_pp_ampt, "UPC/ppReco", 2);
+    make1DRatio(hntrkhijingRatio, hntrk_pp_hijing, "UPC/ppReco", 2);
+    make1DRatio(hntrkhydjetRatio, hntrk_pp_hydjet, "UPC/ppReco", 2);
+
+    
+    //return;
+
+    TCanvas *c1 = new TCanvas("c1", "c1", 800, 800);
+    TCanvas *c2 = new TCanvas("c2", "c2", 800, 800);
+    TCanvas *c3 = new TCanvas("c3", "c3", 800, 800);
+    TCanvas *c4 = new TCanvas("c4", "c4", 800, 800);
+    TCanvas *c5 = new TCanvas("c5", "c5", 800, 800);
+    TCanvas *c6 = new TCanvas("c6", "c6", 800, 800);
+
+    c1->Divide(1, 2,0,0);
+    
+    plotComparison(c1, hpt_upc_ampt,hpt_pp_ampt,hptamptRatio, "AMPT UPC Reco","AMPT pp Reco",0.1,200.,"Track pT");
+
+    c2->Divide(1, 2,0,0);
+    plotComparison(c2, hpt_upc_hijing,hpt_pp_hijing,hpthijingRatio, "Hijing UPC Reco","Hijing pp Reco",0.1,200.,"Track pT");
+
+    c3->Divide(1, 2,0,0);
+    plotComparison(c3, hpt_upc_hydjet,hpt_pp_hydjet,hpthydjetRatio, "Hydjet UPC Reco","Hydjet pp Reco",0.1,200.,"Track pT");
+
+    c4->Divide(1,2,0,0);
+    plotComparison(c4, hntrk_upc_ampt,hntrk_pp_ampt,hntrkamptRatio, "AMPT UPC Reco","AMPT pp Reco",10,1000.,"Ntrk");
+
+    c5->Divide(1,2,0,0);
+    plotComparison(c5, hntrk_upc_hijing,hntrk_pp_hijing,hntrkhijingRatio, "Hijing UPC Reco","Hijing pp Reco",10,1000.,"Ntrk");
+
+    c6->Divide(1,2,0,0);
+    plotComparison(c6, hntrk_upc_hydjet,hntrk_pp_hydjet,hntrkhydjetRatio, "Hydjet UPC Reco","Hydjet pp Reco",10,1000.,"Ntrk");
+    
+    c1->SaveAs("/Users/vipulpant/OOanalysis/Plots/amptppUPCcomp_pt.pdf");
+    c2->SaveAs("/Users/vipulpant/OOanalysis/Plots/hijingppUPCcomp_pt.pdf");
+    c3->SaveAs("/Users/vipulpant/OOanalysis/Plots/hydjetppUPCcomp_pt.pdf");
+    c4->SaveAs("/Users/vipulpant/OOanalysis/Plots/amptppUPCcomp_ntrk.pdf");
+    c5->SaveAs("/Users/vipulpant/OOanalysis/Plots/hijingppUPCcomp_ntrk.pdf");
+    c6->SaveAs("/Users/vipulpant/OOanalysis/Plots/hydjetppUPCcomp_ntrk.pdf");
+    
+
+    
+    
+
+    
+    
+   
+}
+

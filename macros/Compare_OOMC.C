@@ -1,0 +1,112 @@
+#include <TCanvas.h>
+#include <TFile.h>
+#include <TH1.h>
+#include <TLegend.h>
+
+//void RebinLogx(TH1* hist, Int_t nbinsLog, Double_t minPt, Double_t maxPt) {
+
+
+  /*  Double_t binEdges[nbinsLog + 1];
+  for (int i = 0; i <= nbinsLog; i++) {
+    binEdges[i] = TMath::Power(10, TMath::Log10(minPt) + i * (TMath::Log10(maxPt) - TMath::Log10(minPt)) / nbinsLog);
+  }
+
+  hist->SetBins(nbinsLog, binEdges);
+  }*/
+void Compare_OOMC() {
+    // List of file names
+
+  TFile *f= TFile::Open("/Users/vipulpant/cernbox/newana/Histograms_OOHydjet_6p8.root");
+  TDirectoryFile *g = (TDirectoryFile*) f->Get("defaultCPDC");
+  TDirectoryFile *g1 = (TDirectoryFile*) g->Get("QAplots");
+
+  TH1* hntrk= (TH1*) g1->Get("hNtrk_inc");
+  TH1* hpt= (TH1*) g1->Get("hpt_inc");
+  TH1* heta= (TH1*) g1->Get("heta_inc");
+  TH1* hphi= (TH1*) g1->Get("hphi_inc");
+  //RebinLogx(hntrk,100,0.1,1000);
+  //hntrk->Draw();
+
+    std::vector<TH1*> hist6p8={hntrk,hpt,heta,hphi};
+  
+    std::vector<TString> fileNames = {
+
+      "/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_AMPT_UPCreco_5p36.root",
+      "/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_AMPT_ppreco_5p36.root",
+      "/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_Hijing_UPCreco_5p36.root",
+      "/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_Hijing_ppreco_5p36.root",
+      "/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_Hydjet_UPCreco_5p36.root",
+      "/Users/vipulpant/OOanalysis/OOTrackAnalysis/Histograms_Hydjet_ppreco_5p36.root"      
+
+
+    };
+
+    // List of histogram names
+    std::vector<TString> histNames = {
+        "hNtrk", "htrkpt", "htrketa", "htrkphi"
+    };
+    std::vector<TString> sampleNames= {"AMPT UPCreco 5.36 TeV","AMPT ppreco 5.36 TeV","Hijing UPCreco 5.36 TeV","Hijing ppreco 5.36 TeV", "Hydjet UPCreco 5.36 TeV"};
+
+    
+
+
+    
+    // Colors for different histograms
+    int colors[] = {kRed, kBlue, kGreen, kBlack,kMagenta};
+
+    // Loop through histogram names and create a canvas for each type
+
+    int j=-1;
+    for (const auto& histName : histNames) {
+      j++;
+        TCanvas *canvas = new TCanvas(histName, histName, 800, 600);
+        TLegend *legend = new TLegend(0.7, 0.7, 0.9, 0.9);
+        if (histName=="hNtrk"||histName=="htrkpt") canvas->SetLogy(1);
+	
+        bool firstHist = true;
+        TH1 *hist = nullptr;
+
+        for (size_t i = 0; i < fileNames.size(); ++i) {
+            TFile *file = TFile::Open(fileNames[i]);
+            if (!file || file->IsZombie()) {
+                std::cerr << "Failed to open file: " << fileNames[i] << std::endl;
+                continue;
+            }
+
+            // Extract the histogram
+            hist = dynamic_cast<TH1*>(file->Get(histName));
+	    if (histName=="htrketa"||histName=="htrkphi"||histName=="hNtrk")
+	      hist->Rebin(10);
+	    //	    if (histName=="htrkpt") hist->GetXaxis()->SetRangeUser(0.,20.);
+            if (!hist) {
+                std::cerr << "Histogram " << histName << " not found in " << fileNames[i] << std::endl;
+                continue;
+            }
+
+            hist->SetLineColor(colors[i]);
+            hist->SetLineWidth(2);
+            hist->SetTitle(histName);
+            hist->SetStats(kFALSE);
+	    hist->SetMarkerStyle(23);
+	    hist->SetMarkerSize(1.3);
+	    hist->SetMarkerColor(colors[i]);
+            // Draw histograms on the same canvas
+            if (firstHist) {
+	      hist->Draw("e");
+                firstHist = false;
+            } else {
+	      hist->Draw("e SAME");
+            }
+	    hist6p8[j]->Draw("e same");
+	    hist6p8[j]->SetMarkerStyle(25);
+	    hist6p8[j]->SetMarkerSize(1.6);
+
+            legend->AddEntry(hist, sampleNames[i], "l");
+	    //legend->AddEntry(hist6p8[j], "Hydjet UPCreco 6.8 TeV","l");
+        }
+
+        legend->Draw();
+        canvas->SaveAs(Form("/Users/vipulpant/OOanalysis/Plots/OOMC_%s.pdf",histName.Data()));  
+	}
+}
+
