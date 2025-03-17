@@ -26,17 +26,7 @@
 #include "TDirectoryFile.h"
 using namespace std;
 
-void RebinLogx(TH1* hist, Int_t nbinsLog, Double_t minPt, Double_t maxPt) {
 
-  TH1::SetDefaultSumw2();
-  Double_t binEdges[nbinsLog + 1];
-  for (int i = 0; i <= nbinsLog; i++) {
-    binEdges[i] = TMath::Power(10, TMath::Log10(minPt) + i * (TMath::Log10(maxPt) - TMath::Log10(minPt)) / nbinsLog);
-    cout<<binEdges[i]<<endl;
-  }
-
-  hist->SetBins(nbinsLog, binEdges);
-}
 
 void Track_Analyzer(TString input_file, TString outputFileName)
 {
@@ -45,19 +35,59 @@ void Track_Analyzer(TString input_file, TString outputFileName)
   TH2::SetDefaultSumw2();
   TH3::SetDefaultSumw2();
 
-  TFile *f = TFile::Open(input_file,"READ");
+
+  // Read the input files********************************************************
+  fstream inputfile;
+  inputfile.open(Form("%s",input_file.Data()), ios::in);
+      
+  if(!inputfile.is_open()){cout << "List of input files not founded!" << endl; return;}{cout << "List of input files founded! --> " << input_file.Data() << endl;}
 
 
+  // Make a chain and a vector of file names*************************************
+  std::vector<TString> file_name_vector;
+  string file_chain;
+  while(getline(inputfile, file_chain)){file_name_vector.push_back(file_chain.c_str());}
+  inputfile.close();
+
+
+  // Read the trees to be added in the Chain*******
   TChain *trk_tree = new TChain("anaTrack/trackTree");
-  trk_tree->Add(input_file);
+
+  // add all the trees to the chain**********************************************
+
+  for (std::vector<TString>::iterator listIterator = file_name_vector.begin(); listIterator != file_name_vector.end(); listIterator++){
+    cout<<"list operator is "<<*listIterator<<endl;          
+
+    TFile *testfile = TFile::Open(*listIterator);
+
+    if (!testfile) cout<<"file not found";
+    if(!testfile || testfile->IsZombie() || testfile->TestBit(TFile::kRecovered)) cout << "File: " << *listIterator << " failed to open" << endl;
+    if(!testfile || testfile->IsZombie() || testfile->TestBit(TFile::kRecovered)) continue;
+
+
+    cout << "Adding file " << *listIterator << " to the chains" << endl;
+    trk_tree->Add(*listIterator);
+     
+    }
+
+
   
   TH1D* hEvents = new TH1D("hEvents", "", 10, 0, 10);
   TH1D* hZvtx = new TH1D("hZvtx", "", 80, -20, 20);
 
 
+  double pTbins[]={0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
+        0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,
+        1.0, 1.05, 1.1, 1.15, 1.2,
+        1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0,
+        2.5, 3.0, 4.0, 5.0, 7.5, 10.0, 12.0, 15.0,
+        20.0, 25.0, 30.0, 45.0, 60.0, 90.0, 120.0, 
+	180.0, 300.0, 500.0,1000.};
+  
+  int nptbins=sizeof(pTbins) / sizeof(pTbins[0]) - 1;
   // 1-d and 2-d histograms to store trk info
-  TH1D* hNtrk     = new TH1D("hNtrk","hNtrk",1000,0,1000);
-  TH1D* htrkpt    = new TH1D("htrkpt","htrkpt",1000,0,200);
+  TH1D* hNtrk     = new TH1D("hNtrk","hNtrk",nptbins,pTbins);
+  TH1D* htrkpt    = new TH1D("htrkpt","htrkpt",nptbins,pTbins);
   TH1D* htrketa   = new TH1D("htrketa","htrketa",1000,-3.,3.);
   TH1D* htrkphi   = new TH1D("htrkphi","htrkphi",1000,-3.14,3.14);
   double binEdges[]= {0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5};
@@ -66,11 +96,11 @@ void Track_Analyzer(TString input_file, TString outputFileName)
   TH1D* htrkDcaz= new TH1D("htrkDcaz","htrkDcaz",100,0.,3.);
   TH1D* htrkDcaxy=new TH1D("htrkDcaxy","htrkDcaxy",100,0.,3.);
   
-  TH1D* hhiHF     = new TH1D("hhiHF","hhiHF",200,0.,700.);
-  TH2D* hNtrkHF   = new TH2D("hNtrkHF","hNtrkHF",500,0.,500,100.,0.,700);
+  TH1D* hhiHF     = new TH1D("hhiHF","hhiHF",1000,0.,1000.);
+  TH2D* hNtrkHF   = new TH2D("hNtrkHF","hNtrkHF",1000,0.,1000,2000,0.,1000);
 
-  RebinLogx(htrkpt,30,0.1,200.);
-  RebinLogx(hNtrk,40,0.1,1000);
+  
+ 
 
   int nevents = trk_tree->GetEntries(); // number of events
   cout << "Total number of events in those files: "<< nevents << endl;
@@ -82,7 +112,7 @@ void Track_Analyzer(TString input_file, TString outputFileName)
   for(int i = 0; i < nevents; i++)
     {
 
-      if (i%100==0) cout<<i<<" events passed "<<endl;
+      if (i%1000==0) cout<<i<<" events passed "<<endl;
 
 
       //Event information******************************************************
@@ -195,7 +225,8 @@ void Track_Analyzer(TString input_file, TString outputFileName)
 	  
 	  if(trk_pt>10 && abs(trk_pt_error/trk_pt)>=0.1) continue;
 
-	  //cout<<trk_pt<<"  "<<trk_eta<<" "<<endl;
+	  cout<<"Event "<<i<<"  "<<trk_pt<<"  "<<trk_eta<<" "<<endl;
+	  //cout<<"Event "<<i<<" trk eta "<<trk_eta<<endl; 
 
 	  htrkpt->Fill(trk_pt);
 	  htrketa->Fill(trk_eta);
